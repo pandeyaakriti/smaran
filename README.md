@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🧠 Smaran</h1>
+  <h1>Smaran</h1>
   <p><strong>Real-time AI memory assistant — face recognition · speech transcription · contextual recall</strong></p>
   <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi" />
@@ -13,9 +13,9 @@
 
 Smaran (*Sanskrit: "to remember"*) is a real-time AI-powered memory assistant that helps you recall who you're talking to and what matters to them — during live conversations. It combines:
 
-- 🎥 **Face recognition** via InsightFace — identify people the moment they appear on camera
-- 🎙️ **Speech transcription** via faster-whisper — offline, real-time conversation capture
-- 🧩 **Contextual memory recall** via LLaMA (Ollama) + ChromaDB — relevant cues surfaced at the right moment
+- **Face recognition** via InsightFace — identify people the moment they appear on camera
+- **Speech transcription** via faster-whisper — offline, real-time conversation capture
+- **Contextual memory recall** via LLaMA (Ollama) + ChromaDB — relevant cues surfaced at the right moment
 
 ---
 
