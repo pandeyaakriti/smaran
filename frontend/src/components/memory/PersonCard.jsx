@@ -1,0 +1,78 @@
+const RELATION_COLORS = {
+  colleague:  "bg-blue-50 text-blue-700",
+  friend:     "bg-emerald-50 text-emerald-700",
+  family:     "bg-amber-50 text-amber-700",
+  manager:    "bg-purple-50 text-purple-700",
+  client:     "bg-rose-50 text-rose-700",
+};
+
+function Avatar({ name }) {
+  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  const colors = [
+    "bg-stone-200 text-stone-700",
+    "bg-blue-100 text-blue-700",
+    "bg-emerald-100 text-emerald-700",
+    "bg-amber-100 text-amber-700",
+    "bg-rose-100 text-rose-700",
+    "bg-purple-100 text-purple-700",
+  ];
+  const color = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${color}`}>
+      {initials}
+    </div>
+  );
+}
+
+export default function PersonCard({ person, onEdit, onDelete, deleting }) {
+  const relationClass = RELATION_COLORS[person.relation?.toLowerCase()] ?? "bg-stone-100 text-stone-600";
+
+  return (
+    <div className="bg-white border border-stone-200 rounded-xl p-5 flex flex-col gap-4 hover:border-stone-300 hover:shadow-sm transition-all duration-150">
+      {/* Top row */}
+      <div className="flex items-start gap-3">
+        <Avatar name={person.name} />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-stone-900 text-sm truncate">{person.name}</p>
+          {person.nickname && (
+            <p className="text-xs text-stone-400 truncate">"{person.nickname}"</p>
+          )}
+          {person.relation && (
+            <span className={`inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${relationClass}`}>
+              {person.relation}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Notes */}
+      {person.notes && (
+        <p className="text-xs text-stone-500 leading-relaxed line-clamp-3 border-t border-stone-100 pt-3">
+          {person.notes}
+        </p>
+      )}
+
+      {/* No notes placeholder */}
+      {!person.notes && (
+        <p className="text-xs text-stone-300 italic border-t border-stone-100 pt-3">No notes yet</p>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2 mt-auto pt-1">
+        <button
+          onClick={onEdit}
+          className="flex-1 text-xs font-medium text-stone-600 border border-stone-200 rounded-md py-1.5 hover:bg-stone-50 hover:border-stone-300 transition-colors"
+        >
+          Edit
+        </button>
+        <button
+          onClick={onDelete}
+          disabled={deleting}
+          className="flex-1 text-xs font-medium text-red-500 border border-red-100 rounded-md py-1.5 hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-40"
+        >
+          {deleting ? "Deleting…" : "Delete"}
+        </button>
+      </div>
+    </div>
+  );
+}
