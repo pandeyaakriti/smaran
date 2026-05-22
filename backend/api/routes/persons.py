@@ -35,6 +35,17 @@ async def get_person(person_id: int, db: AsyncSession = Depends(get_db)):
         raise PersonNotFoundError(person_id)
     return person
 
+@router.patch("/{person_id}")
+async def update_person(person_id: int, payload: PersonCreate, db: AsyncSession = Depends(get_db)):
+    person = await db.get(Person, person_id)
+    if not person:
+        raise PersonNotFoundError(person_id)
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(person, field, value)
+    await db.commit()
+    await db.refresh(person)
+    return person
+
 @router.delete("/{person_id}", status_code=204)
 async def delete_person(person_id: int, db: AsyncSession = Depends(get_db)):
     person = await db.get(Person, person_id)

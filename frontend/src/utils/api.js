@@ -7,12 +7,13 @@ const api = axios.create({
 
 // Persons
 export const personApi = {
-  list:   ()           => api.get('/persons'),
-  get:    (id)         => api.get(`/persons/${id}`),
-  create: (data)       => api.post('/persons', data),
-  delete: (id)         => api.delete(`/persons/${id}`),
-  enrollFace: (id, formData) => api.post(`/faces/enroll/${id}`, formData,
-                                { headers: { 'Content-Type': 'multipart/form-data' }}),
+  list:       ()              => api.get('/persons'),
+  get:        (id)            => api.get(`/persons/${id}`),
+  create:     (data)          => api.post('/persons', data),
+  update:     (id, data)      => api.patch(`/persons/${id}`, data),
+  delete:     (id)            => api.delete(`/persons/${id}`),
+  enrollFace: (id, formData)  => api.post(`/faces/enroll/${id}`, formData,
+                                  { headers: { 'Content-Type': 'multipart/form-data' }}),
 }
 
 // Memory / LLM
