@@ -91,15 +91,16 @@ export default function PersonManager() {
         </div>
       )}
 
-      {/* States */}
+      {/* Loading skeletons */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1,2,3].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="h-44 rounded-xl bg-stone-100 animate-pulse" />
           ))}
         </div>
       )}
 
+      {/* Error */}
       {error && !loading && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-3 rounded-lg">
           <span className="text-base">⚠</span> {error}
@@ -107,18 +108,21 @@ export default function PersonManager() {
         </div>
       )}
 
+      {/* Empty state */}
       {!loading && !error && persons.length === 0 && (
         <div className="text-center py-20 border-2 border-dashed border-stone-200 rounded-xl">
-          <div className="text-4xl mb-3">logo aaucha yeta</div>
+          <div className="text-4xl mb-3">🧠</div>
           <p className="text-stone-500 text-sm mb-4">No people enrolled yet.<br />Add someone to get started.</p>
           <button onClick={openAdd} className="text-sm font-medium text-stone-900 underline underline-offset-2">Add your first person</button>
         </div>
       )}
 
+      {/* No search results */}
       {!loading && !error && filtered.length === 0 && persons.length > 0 && (
         <p className="text-stone-500 text-sm">No results for "{search}"</p>
       )}
 
+      {/* Cards grid */}
       {!loading && !error && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(p => (
@@ -127,13 +131,14 @@ export default function PersonManager() {
               person={p}
               onEdit={() => openEdit(p)}
               onDelete={() => handleDelete(p.id)}
-              deleting={deleting === p.id}
+              deleting={deleting === p.id}   // ← was accidentally removed
+              onFaceEnrolled={load}           // ← triggers re-fetch after enrollment
             />
           ))}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Add / Edit modal */}
       {modalOpen && (
         <PersonModal
           person={editing}
