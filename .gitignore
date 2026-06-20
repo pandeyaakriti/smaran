@@ -35,12 +35,11 @@ chroma_db/
 data/
 
 # Models / Large files
-models/
-*.bin
-*.safetensors
-*.gguf
-*.pt
-*.pth
+models/*.bin
+models/*.safetensors
+models/*.gguf
+models/*.pt
+models/*.pth
 
 # OS
 .DS_Store
