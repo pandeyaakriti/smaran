@@ -13,12 +13,12 @@ from backend.core.config import get_settings
 from backend.db.database import init_db
 from backend.services.face.manager import FaceManager
 from backend.services.speech.transcriber import Transcriber
-from backend.api.routes import health, persons, faces, memory
+from backend.api.routes import health, persons, faces, memory, settings as settings_route
 
 settings = get_settings()
 
 # backend/uploads/  and  backend/uploads/faces/
-BASE_DIR    = Path(__file__).resolve().parent   # smaran/backend/
+BASE_DIR    = Path(__file__).resolve().parent  
 UPLOADS_DIR = BASE_DIR / "uploads"
 FACES_DIR   = UPLOADS_DIR / "faces"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -59,6 +59,7 @@ app.include_router(health.router)
 app.include_router(persons.router)
 app.include_router(faces.router)
 app.include_router(memory.router)
+app.include_router(settings_route.router)
 
 # ── 3. Static files last ─────────────────────────────────────────────────────
 # Mount AFTER routers so /uploads never shadows an API path.

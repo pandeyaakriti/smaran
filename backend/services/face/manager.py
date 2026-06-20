@@ -53,32 +53,34 @@ class FaceManager:
             for face in faces
         ]
 
-    def identify(self, embedding: np.ndarray) -> dict | None:
+    def identify(self, embedding: np.ndarray, user_id: str, threshold: float | None = None) -> dict | None:
         """
-        Query ChromaDB for nearest face. Returns person metadata or None
-        if similarity is below threshold.
+        Query ChromaDB for nearest face belonging to this user only.
+        Returns person metadata or None if similarity is below threshold.
         """
         results = self._chroma.query(
             query_embeddings=[embedding.tolist()],
             n_results=1,
+            where={"user_id": user_id},
             include=["metadatas", "distances"],
         )
         if not results["ids"][0]:
             return None
         distance = results["distances"][0][0]
         similarity = 1 - distance          # cosine distance → similarity
-        if similarity < settings.face_similarity_threshold:
+        min_threshold = threshold if threshold is not None else settings.face_similarity_threshold
+        if similarity < min_threshold:
             return None
         return {
             **results["metadatas"][0][0],
             "similarity": round(similarity, 4),
         }
 
-    def enroll(self, person_id: int, name: str, embedding: np.ndarray):
-        """Store a face embedding for a known person."""
+    def enroll(self, person_id: int, name: str, user_id: str, embedding: np.ndarray):
+        """Store a face embedding for a known person, scoped to the owning user."""
         self._chroma.upsert(
-            ids=[f"person_{person_id}"],
+            ids=[f"user_{user_id}_person_{person_id}"],
             embeddings=[embedding.tolist()],
-            metadatas=[{"person_id": person_id, "name": name}],
+            metadatas=[{"person_id": person_id, "name": name, "user_id": user_id}],
         )
-        logger.info("Enrolled face for {} (id={})", name, person_id)
+        logger.info("Enrolled face for {} (id={}, user={})", name, person_id, user_id)

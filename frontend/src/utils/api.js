@@ -32,4 +32,12 @@ export const memoryApi = {
     api.post('/memory/recall', { person_context: personContext, conversation_snippet: snippet }),
 }
 
+// Settings
+export const settingsApi = {
+  get:        ()        => api.get('/settings'),
+  update:     (data)    => api.patch('/settings', data),
+  stats:      ()        => api.get('/settings/stats'),
+  deleteAll:  ()         => api.delete('/settings/data'),
+}
+
 export default api
