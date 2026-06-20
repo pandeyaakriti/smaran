@@ -76,20 +76,20 @@ export default function Settings() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-stone-900 tracking-tight">Settings</h1>
         <p className="text-sm text-stone-500 mt-0.5">
-          Configure how Smaran recognizes, listens, and remembers
+          Configure how smaran recognizes, listens, and remembers
           {saving && <span className="text-stone-400 ml-2">· saving…</span>}
         </p>
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-100 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
-          <span>⚠</span> {error}
+        <div className="flex items-center gap-3   text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+          {error}
           <button onClick={load} className="ml-auto underline text-red-600 hover:text-red-800">Retry</button>
         </div>
       )}
 
       {/* Account */}
-      <SettingsSection icon="👤" title="Account" description="Signed in via Google">
+      <SettingsSection title="Account" description="Signed in via Google">
         <div className="flex items-center gap-3">
           {user?.user_metadata?.avatar_url ? (
             <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full" />
@@ -104,7 +104,7 @@ export default function Settings() {
           </div>
           <button
             onClick={() => supabase.auth.signOut()}
-            className="text-xs font-medium text-red-500 border border-red-100 rounded-md px-3 py-1.5 hover:bg-red-50 transition-colors"
+            className="text-xs font-medium text-red-400 hover:text-red-500 transition-colors"
           >
             Sign out
           </button>
@@ -112,7 +112,7 @@ export default function Settings() {
       </SettingsSection>
 
       {/* Face recognition */}
-      <SettingsSection icon="🪪" title="Face recognition" description="Controls how confidently Smaran matches a face">
+      <SettingsSection title="Face recognition" description="Controls how confidently smaran matches a face">
         <div>
           <div className="flex justify-between mb-1.5">
             <label className="text-sm text-stone-700">Match sensitivity</label>
@@ -147,8 +147,8 @@ export default function Settings() {
       </SettingsSection>
 
       {/* Speech */}
-      <SettingsSection icon="🎙️" title="Speech transcription" description="Whisper model used to transcribe conversations">
-        <div className="flex justify-between items-center">
+      <SettingsSection title="Speech transcription" description="Whisper model used to transcribe conversations">
+        {/* <div className="flex justify-between items-center">
           <label className="text-sm text-stone-700">Model size</label>
           <select
             value={settings.whisper_model_size ?? "base"}
@@ -159,7 +159,7 @@ export default function Settings() {
             <option value="base">Base — balanced</option>
             <option value="small">Small — more accurate</option>
           </select>
-        </div>
+        </div> */}
         <div className="flex justify-between items-center">
           <label className="text-sm text-stone-700">Language</label>
           <select
@@ -175,7 +175,7 @@ export default function Settings() {
       </SettingsSection>
 
       {/* Memory / LLM */}
-      <SettingsSection icon="🧠" title="Memory assistant" description="The LLM that generates contextual cues">
+      <SettingsSection title="Memory assistant" description="The LLM that generates contextual cues">
         <div className="flex justify-between items-center">
           <label className="text-sm text-stone-700">Ollama model</label>
           <select
@@ -184,14 +184,14 @@ export default function Settings() {
             className={selectClass}
           >
             <option value="llama3.2">llama3.2</option>
-            <option value="mistral">mistral</option>
-            <option value="gemma2">gemma2</option>
+            {/* <option value="mistral">mistral</option>
+            <option value="gemma2">gemma2</option> */}
           </select>
         </div>
       </SettingsSection>
 
       {/* Data & privacy */}
-      <SettingsSection icon="🗄️" title="Data & privacy" description="Manage what Smaran has stored about you">
+      <SettingsSection  title="Data & privacy" description="Manage what smaran has stored about you">
         <div className="flex justify-between items-center">
           <span className="text-sm text-stone-700">
             {stats?.person_count ?? 0} people enrolled · {stats?.face_embedding_count ?? 0} face embeddings
@@ -204,27 +204,27 @@ export default function Settings() {
               <span className="text-sm text-red-500">Delete all my data</span>
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="text-xs font-medium text-red-500 border border-red-100 rounded-md px-3 py-1.5 hover:bg-red-50 transition-colors"
+                className="text-xs font-medium text-red-400  hover:text-red-500 transition-colors"
               >
                 Delete
               </button>
             </div>
           ) : (
-            <div className="bg-red-50 border border-red-100 rounded-lg p-3">
+            <div className="bg-red-0 border border-red-100 rounded-lg p-3">
               <p className="text-xs text-red-700 mb-3">
                 This permanently deletes all enrolled people, face data, and settings. This cannot be undone.
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="text-xs font-medium text-stone-600 px-3 py-1.5 rounded-md hover:bg-stone-100 transition-colors"
+                  className="text-xs font-medium text-stone-600 px-3 py-1.5 rounded-md hover:text-stone-900 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteAll}
                   disabled={deleting}
-                  className="text-xs font-medium bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                  className="text-xs font-medium text-red-400 px-3 py-1.5 rounded-md hover:text-red-500 transition-colors disabled:opacity-50"
                 >
                   {deleting ? "Deleting…" : "Yes, delete everything"}
                 </button>
