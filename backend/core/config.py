@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     chroma_db_path: str = "./data/chroma_db"
     chroma_collection_faces: str = "faces"
     chroma_collection_memory: str = "memory"
+    database_url: str = "DATABASE_URL"
 
     # Face Recognition
     face_similarity_threshold: float = 0.6
@@ -38,9 +39,15 @@ class Settings(BaseSettings):
     ws_max_connections: int = 10
     ws_heartbeat_interval: int = 30
 
+    #supabase 
+    supabase_url: str = "SUPABASE_URL"
+    supabase_service_key: str = "SUPABASE_SERVICE_KEY"
     @property
     def data_dir(self) -> Path:
         return Path(self.sqlite_db_path).parent
+    @property
+    def using_postgres(self) -> bool:
+        return bool(self.database_url)
 
 
 @lru_cache
