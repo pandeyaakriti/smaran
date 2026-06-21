@@ -32,6 +32,13 @@ export const memoryApi = {
     api.post('/memory/recall', { person_context: personContext, conversation_snippet: snippet }),
 }
 
+// Speech
+export const speechApi = {
+  transcribe: (formData) => api.post('/speech/transcribe', formData,
+                              { headers: { 'Content-Type': 'multipart/form-data' }}),
+  getSession: (sessionId) => api.get(`/speech/sessions/${sessionId}`),
+}
+
 // Settings
 export const settingsApi = {
   get:        ()        => api.get('/settings'),
