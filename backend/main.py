@@ -13,7 +13,7 @@ from backend.core.config import get_settings
 from backend.db.database import init_db
 from backend.services.face.manager import FaceManager
 from backend.services.speech.transcriber import Transcriber
-from backend.api.routes import health, persons, faces, memory, settings as settings_route
+from backend.api.routes import health, persons, faces, memory, speech, settings as settings_route
 
 settings = get_settings()
 
@@ -59,6 +59,7 @@ app.include_router(health.router)
 app.include_router(persons.router)
 app.include_router(faces.router)
 app.include_router(memory.router)
+app.include_router(speech.router)
 app.include_router(settings_route.router)
 
 # ── 3. Static files last ─────────────────────────────────────────────────────
