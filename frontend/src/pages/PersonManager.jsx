@@ -111,7 +111,13 @@ export default function PersonManager() {
       {/* Empty state */}
       {!loading && !error && persons.length === 0 && (
         <div className="text-center py-20 border-2 border-dashed border-stone-200 rounded-xl">
-          <div className="text-4xl mb-3">🧠</div>
+          <div className="mb-3 flex justify-center">
+          <img
+            src="/logo.png"
+            alt="Smaran Logo"
+            className="w-20 h-20 object-contain"
+          />
+        </div>
           <p className="text-stone-500 text-sm mb-4">No people enrolled yet.<br />Add someone to get started.</p>
           <button onClick={openAdd} className="text-sm font-medium text-stone-900 underline underline-offset-2">Add your first person</button>
         </div>
