@@ -1,8 +1,18 @@
 import axios from 'axios'
+import { supabase } from './supabase'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
   timeout: 15000,
+})
+
+// Attach the current user's JWT to every request
+api.interceptors.request.use(async (config) => {
+  const { data } = await supabase.auth.getSession()
+  if (data.session?.access_token) {
+    config.headers.Authorization = `Bearer ${data.session.access_token}`
+  }
+  return config
 })
 
 // Persons
@@ -20,6 +30,21 @@ export const personApi = {
 export const memoryApi = {
   recall: (personContext, snippet) =>
     api.post('/memory/recall', { person_context: personContext, conversation_snippet: snippet }),
+}
+
+// Speech
+export const speechApi = {
+  transcribe: (formData) => api.post('/speech/transcribe', formData,
+                              { headers: { 'Content-Type': 'multipart/form-data' }}),
+  getSession: (sessionId) => api.get(`/speech/sessions/${sessionId}`),
+}
+
+// Settings
+export const settingsApi = {
+  get:        ()        => api.get('/settings'),
+  update:     (data)    => api.patch('/settings', data),
+  stats:      ()        => api.get('/settings/stats'),
+  deleteAll:  ()         => api.delete('/settings/data'),
 }
 
 export default api

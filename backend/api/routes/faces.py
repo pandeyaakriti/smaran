@@ -10,6 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.db.database import get_db
 from backend.services.face.manager import FaceManager
 from backend.core.exceptions import FaceNotDetectedError, PersonNotFoundError
+from backend.core.auth import get_current_user
+import numpy as np
+import cv2
+
+from pathlib import Path
+from uuid import uuid4
 
 router = APIRouter(prefix="/faces", tags=["faces"])
 
@@ -23,6 +29,7 @@ async def enroll_face(
     person_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     from backend.models.person import Person
     from backend.models.face_embedding import FaceEmbedding
