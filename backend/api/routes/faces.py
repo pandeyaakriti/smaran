@@ -72,10 +72,11 @@ async def enroll_face(
     best = max(faces, key=lambda f: f["det_score"])
 
     manager.enroll(
-        person_id,
-        person.name,
-        np.array(best["embedding"])
-    )
+    person_id,
+    person.name,
+    user_id,
+    np.array(best["embedding"])
+    )   
 
     return {
         "status": "enrolled",
