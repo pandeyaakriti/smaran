@@ -54,3 +54,5 @@ logs/
 
 # Jupyter
 .ipynb_checkpoints/
+
+backend/uploads/faces/
