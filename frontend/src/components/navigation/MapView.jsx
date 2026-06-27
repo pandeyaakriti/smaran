@@ -201,7 +201,7 @@ export function MapView({
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: '100%', minHeight: '320px' }}
+      style={{ width: '100%', height: '100%', minHeight: '320px', zIndex: 0, position: 'relative' }}
       aria-label="Navigation map"
     />
   );

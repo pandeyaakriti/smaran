@@ -63,7 +63,7 @@ app.include_router(faces.router)
 app.include_router(memory.router)
 app.include_router(speech.router)
 app.include_router(settings_route.router)
-app.include_router(navigation_router, prefix="/api")
+app.include_router(navigation_router)
 
 # ── 3. Static files last ─────────────────────────────────────────────────────
 # Mount AFTER routers so /uploads never shadows an API path.

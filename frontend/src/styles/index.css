@@ -6,4 +6,15 @@
   body {
     @apply text-stone-900 antialiased;
   }
+
+  /* Keep Leaflet map tiles below modals and overlays */
+  .leaflet-pane,
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 1 !important;
+  }
+
+  .leaflet-control {
+    z-index: 2 !important;
+  }
 }
