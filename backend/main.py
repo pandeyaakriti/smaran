@@ -14,6 +14,8 @@ from backend.db.database import init_db
 from backend.services.face.manager import FaceManager
 from backend.services.speech.transcriber import Transcriber
 from backend.api.routes import health, persons, faces, memory, speech, settings as settings_route
+from backend.api.routes.navigation import router as navigation_router
+
 
 settings = get_settings()
 
@@ -61,6 +63,7 @@ app.include_router(faces.router)
 app.include_router(memory.router)
 app.include_router(speech.router)
 app.include_router(settings_route.router)
+app.include_router(navigation_router, prefix="/api")
 
 # ── 3. Static files last ─────────────────────────────────────────────────────
 # Mount AFTER routers so /uploads never shadows an API path.

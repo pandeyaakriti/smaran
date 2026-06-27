@@ -2,225 +2,196 @@
 Navigation API routes.
 
 Prefix: /api/navigation
-Auth:   Supabase JWT via get_current_user dependency (same as other routes).
+Auth:   Supabase JWT via get_current_user (backend.core.auth) — same as persons.py.
 
 Phase 1 endpoints
 -----------------
-GET    /locations              list saved locations for current user
-POST   /locations              create a new saved location
-PATCH  /locations/{id}         update label / notes / pin
-DELETE /locations/{id}         delete a location (cascades visits)
-POST   /visits                 record a proximity visit (called by frontend)
-GET    /visits/{location_id}   visit history for one location
+GET    /locations                  list saved locations for current user
+POST   /locations                  create a new saved location
+PATCH  /locations/{location_id}    update label / notes / pin / category
+DELETE /locations/{location_id}    delete a location (visits cascade)
+POST   /visits                     record a proximity visit (called by frontend)
+GET    /visits/{location_id}       visit history for one location
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from math import asin, cos, radians, sin, sqrt
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_user, get_db
+from backend.core.auth import get_current_user
+from backend.db.database import get_db
 from backend.models.navigation import LocationVisit, SavedLocation
 
 router = APIRouter(prefix="/navigation", tags=["navigation"])
 
-# ---------------------------------------------------------------------------
-# Pydantic schemas
-# ---------------------------------------------------------------------------
-
 VALID_CATEGORIES = {"home", "medical", "social", "shopping", "other"}
 
 
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
 class SavedLocationCreate(BaseModel):
-    label: str = Field(..., min_length=1, max_length=120)
-    notes: Optional[str] = None
-    latitude: float
+    label:     str            = Field(..., min_length=1, max_length=120)
+    notes:     Optional[str]  = None
+    latitude:  float
     longitude: float
-    category: str = "other"
-    is_pinned: bool = False
+    category:  str            = "other"
+    is_pinned: bool           = False
 
 
 class SavedLocationUpdate(BaseModel):
-    label: Optional[str] = Field(None, min_length=1, max_length=120)
-    notes: Optional[str] = None
-    category: Optional[str] = None
+    label:     Optional[str]  = Field(None, min_length=1, max_length=120)
+    notes:     Optional[str]  = None
+    category:  Optional[str]  = None
     is_pinned: Optional[bool] = None
 
 
 class VisitCreate(BaseModel):
     saved_location_id: str
-    latitude: float
-    longitude: float
+    latitude:          float
+    longitude:         float
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _haversine_metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Return great-circle distance in metres between two GPS coordinates."""
-    R = 6_371_000  # Earth radius in metres
+    """Great-circle distance in metres between two GPS coordinates."""
+    R = 6_371_000
     φ1, φ2 = radians(lat1), radians(lat2)
-    Δφ = radians(lat2 - lat1)
-    Δλ = radians(lon2 - lon1)
+    Δφ, Δλ = radians(lat2 - lat1), radians(lon2 - lon1)
     a = sin(Δφ / 2) ** 2 + cos(φ1) * cos(φ2) * sin(Δλ / 2) ** 2
     return R * 2 * asin(sqrt(a))
 
 
-def _get_location_or_404(
-    location_id: str, user_id: str, db: Session
+async def _get_own_location(
+    location_id: str,
+    user_id:     str,
+    db:          AsyncSession,
 ) -> SavedLocation:
-    loc = (
-        db.query(SavedLocation)
-        .filter(
-            SavedLocation.id == location_id,
-            SavedLocation.user_id == user_id,
-        )
-        .first()
-    )
-    if not loc:
+    """Fetch a SavedLocation row, raising 404 if missing or owned by another user."""
+    loc = await db.get(SavedLocation, location_id)
+    if not loc or loc.user_id != user_id:
         raise HTTPException(status_code=404, detail="Location not found.")
     return loc
 
 
-# ---------------------------------------------------------------------------
-# Saved locations CRUD
-# ---------------------------------------------------------------------------
+# ── Saved locations CRUD ──────────────────────────────────────────────────────
 
 @router.get("/locations")
-def list_locations(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+async def list_locations(
+    db:      AsyncSession = Depends(get_db),
+    user_id: str          = Depends(get_current_user),
 ):
-    """Return all saved locations for the authenticated user, pinned first."""
-    locations = (
-        db.query(SavedLocation)
-        .filter(SavedLocation.user_id == current_user.id)
+    """Return all saved locations for the current user, pinned first."""
+    result = await db.execute(
+        select(SavedLocation)
+        .where(SavedLocation.user_id == user_id)
         .order_by(SavedLocation.is_pinned.desc(), SavedLocation.label)
-        .all()
     )
-    return [loc.to_dict() for loc in locations]
+    return result.scalars().all()
 
 
 @router.post("/locations", status_code=status.HTTP_201_CREATED)
-def create_location(
-    body: SavedLocationCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+async def create_location(
+    body:    SavedLocationCreate,
+    db:      AsyncSession = Depends(get_db),
+    user_id: str          = Depends(get_current_user),
 ):
     if body.category not in VALID_CATEGORIES:
         raise HTTPException(
             status_code=422,
             detail=f"category must be one of {sorted(VALID_CATEGORIES)}",
         )
-
-    loc = SavedLocation(
-        user_id=current_user.id,
-        label=body.label,
-        notes=body.notes,
-        latitude=body.latitude,
-        longitude=body.longitude,
-        category=body.category,
-        is_pinned=body.is_pinned,
-    )
+    loc = SavedLocation(**body.model_dump(), user_id=user_id)
     db.add(loc)
-    db.commit()
-    db.refresh(loc)
-    return loc.to_dict()
+    await db.commit()
+    await db.refresh(loc)
+    return loc
 
 
 @router.patch("/locations/{location_id}")
-def update_location(
+async def update_location(
     location_id: str,
-    body: SavedLocationUpdate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    body:        SavedLocationUpdate,
+    db:          AsyncSession = Depends(get_db),
+    user_id:     str          = Depends(get_current_user),
 ):
-    loc = _get_location_or_404(location_id, current_user.id, db)
+    loc = await _get_own_location(location_id, user_id, db)
 
-    if body.label is not None:
-        loc.label = body.label
-    if body.notes is not None:
-        loc.notes = body.notes
-    if body.category is not None:
-        if body.category not in VALID_CATEGORIES:
-            raise HTTPException(status_code=422, detail="Invalid category.")
-        loc.category = body.category
-    if body.is_pinned is not None:
-        loc.is_pinned = body.is_pinned
+    updates = body.model_dump(exclude_unset=True)
+    if "category" in updates and updates["category"] not in VALID_CATEGORIES:
+        raise HTTPException(status_code=422, detail="Invalid category.")
 
-    loc.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(loc)
-    return loc.to_dict()
+    for field, value in updates.items():
+        setattr(loc, field, value)
+
+    loc.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(loc)
+    return loc
 
 
 @router.delete("/locations/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_location(
+async def delete_location(
     location_id: str,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    db:          AsyncSession = Depends(get_db),
+    user_id:     str          = Depends(get_current_user),
 ):
-    loc = _get_location_or_404(location_id, current_user.id, db)
-    db.delete(loc)
-    db.commit()
+    loc = await _get_own_location(location_id, user_id, db)
+    await db.delete(loc)
+    await db.commit()
 
 
-# ---------------------------------------------------------------------------
-# Visit recording
-# ---------------------------------------------------------------------------
+# ── Visit recording ───────────────────────────────────────────────────────────
 
 @router.post("/visits", status_code=status.HTTP_201_CREATED)
-def record_visit(
-    body: VisitCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+async def record_visit(
+    body:    VisitCreate,
+    db:      AsyncSession = Depends(get_db),
+    user_id: str          = Depends(get_current_user),
 ):
     """
-    Called by the frontend when the device is detected near a saved location.
-    Computes distance automatically from the saved location's coordinates.
+    Called by the frontend when the device is near a saved location.
+    Computes distance from the saved location's coordinates automatically.
     """
-    loc = _get_location_or_404(body.saved_location_id, current_user.id, db)
-
-    distance = _haversine_metres(
-        body.latitude, body.longitude, loc.latitude, loc.longitude
-    )
+    loc = await _get_own_location(body.saved_location_id, user_id, db)
 
     visit = LocationVisit(
-        user_id=current_user.id,
-        saved_location_id=loc.id,
-        latitude=body.latitude,
-        longitude=body.longitude,
-        distance_metres=round(distance, 1),
+        user_id           = user_id,
+        saved_location_id = loc.id,
+        latitude          = body.latitude,
+        longitude         = body.longitude,
+        distance_metres   = round(
+            _haversine_metres(body.latitude, body.longitude, loc.latitude, loc.longitude), 1
+        ),
     )
     db.add(visit)
-    db.commit()
-    db.refresh(visit)
-    return visit.to_dict()
+    await db.commit()
+    await db.refresh(visit)
+    return visit
 
 
 @router.get("/visits/{location_id}")
-def get_visits(
+async def get_visits(
     location_id: str,
-    limit: int = 50,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    limit:       int          = 50,
+    db:          AsyncSession = Depends(get_db),
+    user_id:     str          = Depends(get_current_user),
 ):
-    """Return the most recent visits for a saved location."""
-    # Verify the location belongs to the user first.
-    _get_location_or_404(location_id, current_user.id, db)
+    """Return the most recent visits for one saved location."""
+    await _get_own_location(location_id, user_id, db)   # ownership check
 
-    visits = (
-        db.query(LocationVisit)
-        .filter(
+    result = await db.execute(
+        select(LocationVisit)
+        .where(
             LocationVisit.saved_location_id == location_id,
-            LocationVisit.user_id == current_user.id,
+            LocationVisit.user_id           == user_id,
         )
         .order_by(LocationVisit.visited_at.desc())
         .limit(limit)
-        .all()
     )
-    return [v.to_dict() for v in visits]
+    return result.scalars().all()
