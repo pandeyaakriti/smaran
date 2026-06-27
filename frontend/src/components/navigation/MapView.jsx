@@ -5,16 +5,7 @@
  *   • A pulsing blue dot for the user's live location.
  *   • A marker for each saved location (coloured by category).
  *   • A highlight ring on the selected destination.
- *
- * Install:  npm install leaflet react-leaflet
- * CSS:      add  import 'leaflet/dist/leaflet.css';  in main.jsx
- *
- * Props
- * ─────
- *   currentPosition    { latitude, longitude, accuracy }  – from useNavigation
- *   locations          SavedLocation[]                    – from Redux
- *   selectedId         string | null                      – destination id
- *   onLocationClick    (location) => void                 – marker tap handler
+ *   • "Pick mode": click anywhere on the map to choose a location.
  */
 
 import L from 'leaflet';
@@ -29,13 +20,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Colour per category (matches the badge colours in SavedLocationsList).
 const CATEGORY_COLOUR = {
-  home:     '#3B82F6', // blue
-  medical:  '#EF4444', // red
-  social:   '#10B981', // green
-  shopping: '#F59E0B', // amber
-  other:    '#6B7280', // grey
+  home:     '#3B82F6',
+  medical:  '#EF4444',
+  social:   '#10B981',
+  shopping: '#F59E0B',
+  other:    '#6B7280',
 };
 
 function makePinSvg(colour, selected = false) {
@@ -51,36 +41,57 @@ function makePinSvg(colour, selected = false) {
     </svg>`;
 }
 
-function svgIcon(colour, selected) {
-  const svg = makePinSvg(colour, selected);
+function svgIcon(colour, selected = false) {
   return L.divIcon({
-    html: svg,
-    className: '',        // remove Leaflet's default white box
+    html: makePinSvg(colour, selected),
+    className: '',
     iconSize: [24, 36],
     iconAnchor: [12, 36],
     popupAnchor: [0, -36],
   });
 }
 
+// Grey dashed pin shown while the user is picking a location.
+const PICK_ICON = L.divIcon({
+  html: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="28" height="42">
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 24 12 24S24 21 24 12C24 5.373 18.627 0 12 0z"
+            fill="#6B7280" stroke="white" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="12" cy="12" r="5" fill="white"/>
+    </svg>`,
+  className: '',
+  iconSize: [28, 42],
+  iconAnchor: [14, 42],
+});
+
 export function MapView({
   currentPosition,
-  locations = [],
-  selectedId = null,
+  locations     = [],
+  selectedId    = null,
   onLocationClick,
+  // Pick mode: when onMapClick is provided the cursor becomes a crosshair
+  // and every map click fires onMapClick({ latitude, longitude }).
+  onMapClick    = null,
+  // Controlled preview pin while picking ({ latitude, longitude } | null).
+  pickPreview   = null,
 }) {
-  const containerRef = useRef(null);
-  const mapRef = useRef(null);
-  const userMarkerRef = useRef(null);
-  const accuracyCircleRef = useRef(null);
-  const locationMarkersRef = useRef({}); // { [id]: L.Marker }
+  const containerRef       = useRef(null);
+  const mapRef             = useRef(null);
+  const userMarkerRef      = useRef(null);
+  const accuracyCircleRef  = useRef(null);
+  const locationMarkersRef = useRef({});
+  const pickMarkerRef      = useRef(null);   // grey preview pin
+  const onMapClickRef      = useRef(onMapClick);
+
+  // Keep the click handler ref fresh without re-running the init effect.
+  useEffect(() => { onMapClickRef.current = onMapClick; }, [onMapClick]);
 
   // ── Initialise map once ──────────────────────────────────────────────────
   useEffect(() => {
-    if (mapRef.current) return; // already created
+    if (mapRef.current) return;
 
-    const defaultCenter = [27.7172, 85.3240]; // Kathmandu as initial fallback
     const map = L.map(containerRef.current, {
-      center: defaultCenter,
+      center: [27.7172, 85.3240],
       zoom: 15,
       zoomControl: true,
     });
@@ -90,13 +101,49 @@ export function MapView({
       maxZoom: 19,
     }).addTo(map);
 
-    mapRef.current = map;
+    // Single click listener — delegates to onMapClick when in pick mode.
+    map.on('click', (e) => {
+      if (onMapClickRef.current) {
+        onMapClickRef.current({
+          latitude:  e.latlng.lat,
+          longitude: e.latlng.lng,
+        });
+      }
+    });
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; };
   }, []);
+
+  // ── Crosshair cursor in pick mode ────────────────────────────────────────
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.style.cursor = onMapClick ? 'crosshair' : '';
+  }, [onMapClick]);
+
+  // ── Preview pin while picking ────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (pickPreview) {
+      const latlng = [pickPreview.latitude, pickPreview.longitude];
+      if (pickMarkerRef.current) {
+        pickMarkerRef.current.setLatLng(latlng);
+      } else {
+        pickMarkerRef.current = L.marker(latlng, {
+          icon: PICK_ICON,
+          zIndexOffset: 900,
+        }).addTo(map);
+      }
+    } else {
+      if (pickMarkerRef.current) {
+        pickMarkerRef.current.remove();
+        pickMarkerRef.current = null;
+      }
+    }
+  }, [pickPreview]);
 
   // ── Update user's live position ──────────────────────────────────────────
   useEffect(() => {
@@ -107,7 +154,6 @@ export function MapView({
     const latlng = [lat, lng];
 
     if (!userMarkerRef.current) {
-      // First fix — create the marker and fly to it.
       const pulseIcon = L.divIcon({
         className: '',
         html: `
@@ -159,7 +205,6 @@ export function MapView({
 
     const currentIds = new Set(locations.map((l) => l.id));
 
-    // Remove markers for deleted locations.
     for (const id of Object.keys(locationMarkersRef.current)) {
       if (!currentIds.has(id)) {
         locationMarkersRef.current[id].remove();
@@ -167,11 +212,10 @@ export function MapView({
       }
     }
 
-    // Add or update markers.
     for (const loc of locations) {
-      const colour = CATEGORY_COLOUR[loc.category] ?? CATEGORY_COLOUR.other;
+      const colour    = CATEGORY_COLOUR[loc.category] ?? CATEGORY_COLOUR.other;
       const isSelected = loc.id === selectedId;
-      const icon = svgIcon(colour, isSelected);
+      const icon      = svgIcon(colour, isSelected);
 
       if (locationMarkersRef.current[loc.id]) {
         locationMarkersRef.current[loc.id].setIcon(icon);
@@ -193,9 +237,7 @@ export function MapView({
   useEffect(() => {
     if (!mapRef.current || !selectedId) return;
     const loc = locations.find((l) => l.id === selectedId);
-    if (loc) {
-      mapRef.current.flyTo([loc.latitude, loc.longitude], 17, { duration: 1 });
-    }
+    if (loc) mapRef.current.flyTo([loc.latitude, loc.longitude], 17, { duration: 1 });
   }, [selectedId, locations]);
 
   return (
