@@ -1,185 +1,201 @@
 /**
- * navigationSlice.js
- *
- * Redux slice for the navigation feature.
- * Add this reducer to frontend/src/store/index.js under the key "navigation".
- *
- *   import navigationReducer from './navigationSlice';
- *   // inside configureStore reducers:
- *   navigation: navigationReducer,
+ * navigationSlice.js — Phase 1 + Phase 2
  */
 
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { navigationApi } from '../utils/navigationApi';
 
-// ── Thunks ────────────────────────────────────────────────────────────────
+// ── Thunks ────────────────────────────────────────────────────────────────────
 
 export const fetchLocations = createAsyncThunk(
   'navigation/fetchLocations',
   async (_, { rejectWithValue }) => {
-    try {
-      return await navigationApi.listLocations();
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.detail ?? 'Failed to load locations.');
-    }
+    try { return await navigationApi.listLocations(); }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Failed to load locations.'); }
   }
 );
 
 export const createLocation = createAsyncThunk(
   'navigation/createLocation',
   async (payload, { rejectWithValue }) => {
-    try {
-      return await navigationApi.createLocation(payload);
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.detail ?? 'Could not save location.');
-    }
+    try { return await navigationApi.createLocation(payload); }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Could not save location.'); }
   }
 );
 
 export const updateLocation = createAsyncThunk(
   'navigation/updateLocation',
   async ({ id, changes }, { rejectWithValue }) => {
-    try {
-      return await navigationApi.updateLocation(id, changes);
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.detail ?? 'Could not update location.');
-    }
+    try { return await navigationApi.updateLocation(id, changes); }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Could not update location.'); }
   }
 );
 
 export const deleteLocation = createAsyncThunk(
   'navigation/deleteLocation',
   async (id, { rejectWithValue }) => {
-    try {
-      await navigationApi.deleteLocation(id);
-      return id; // return the id so the reducer can remove it from state
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.detail ?? 'Could not delete location.');
-    }
+    try { await navigationApi.deleteLocation(id); return id; }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Could not delete location.'); }
   }
 );
 
 export const recordVisit = createAsyncThunk(
   'navigation/recordVisit',
   async (payload, { rejectWithValue }) => {
-    try {
-      return await navigationApi.recordVisit(payload);
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.detail ?? 'Visit not recorded.');
-    }
+    try { return await navigationApi.recordVisit(payload); }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Visit not recorded.'); }
   }
 );
 
-// ── Slice ─────────────────────────────────────────────────────────────────
+// Phase 2 thunks
+
+export const startRoute = createAsyncThunk(
+  'navigation/startRoute',
+  async (payload, { rejectWithValue }) => {
+    try { return await navigationApi.startRoute(payload); }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Could not calculate route.'); }
+  }
+);
+
+export const fetchActiveRoute = createAsyncThunk(
+  'navigation/fetchActiveRoute',
+  async (_, { rejectWithValue }) => {
+    try { return await navigationApi.getActiveRoute(); }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Could not fetch route.'); }
+  }
+);
+
+export const cancelRoute = createAsyncThunk(
+  'navigation/cancelRoute',
+  async (routeId, { rejectWithValue }) => {
+    try { await navigationApi.cancelRoute(routeId); return routeId; }
+    catch (e) { return rejectWithValue(e.response?.data?.detail ?? 'Could not cancel route.'); }
+  }
+);
+
+
+// ── Slice ─────────────────────────────────────────────────────────────────────
 
 const initialState = {
-  // Live GPS state (updated by useNavigation hook, never from the server)
-  currentPosition: null,   // { latitude, longitude, accuracy, timestamp }
-  gpsError: null,
+  // GPS
+  currentPosition: null,
+  gpsError:        null,
 
-  // Saved locations from backend
-  locations: [],
-  locationsStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
-  locationsError: null,
+  // Saved locations
+  locations:       [],
+  locationsStatus: 'idle',
+  locationsError:  null,
 
-  // The location the user has selected as a destination (Phase 1: UI only)
   selectedDestinationId: null,
 
   // Mutation feedback
   mutationStatus: 'idle',
-  mutationError: null,
+  mutationError:  null,
+
+  // Phase 2 — active route
+  activeRoute:      null,    // ActiveRoute dict from backend
+  routeCandidates:  [],      // all scored candidates for display
+  routeStatus:      'idle',  // 'idle'|'loading'|'succeeded'|'failed'
+  routeError:       null,
+
+  // Deviation
+  deviationLevel:   0,       // 0=ok 1=warning 2=caregiver notified
+  arrived:          false,
 };
 
 const navigationSlice = createSlice({
   name: 'navigation',
   initialState,
   reducers: {
-    // Called by useNavigation whenever the browser's Geolocation API fires.
-    setCurrentPosition(state, action) {
-      state.currentPosition = action.payload;
-      state.gpsError = null;
+    setCurrentPosition(state, { payload }) {
+      state.currentPosition = payload;
+      state.gpsError        = null;
     },
-    setGpsError(state, action) {
-      state.gpsError = action.payload;
+    setGpsError(state, { payload }) {
+      state.gpsError = payload;
     },
-    setSelectedDestination(state, action) {
-      state.selectedDestinationId = action.payload; // location id or null
+    setSelectedDestination(state, { payload }) {
+      state.selectedDestinationId = payload;
     },
     clearMutationError(state) {
-      state.mutationError = null;
+      state.mutationError  = null;
       state.mutationStatus = 'idle';
+    },
+    // Called by useRoute when a deviation ping comes back.
+    applyDeviationResult(state, { payload }) {
+      state.deviationLevel = payload.new_level;
+      state.arrived        = payload.arrived ?? false;
+    },
+    clearRoute(state) {
+      state.activeRoute     = null;
+      state.routeCandidates = [];
+      state.routeStatus     = 'idle';
+      state.routeError      = null;
+      state.deviationLevel  = 0;
+      state.arrived         = false;
     },
   },
   extraReducers: (builder) => {
     // fetchLocations
     builder
-      .addCase(fetchLocations.pending, (state) => {
-        state.locationsStatus = 'loading';
-        state.locationsError = null;
-      })
-      .addCase(fetchLocations.fulfilled, (state, action) => {
-        state.locationsStatus = 'succeeded';
-        state.locations = action.payload;
-      })
-      .addCase(fetchLocations.rejected, (state, action) => {
-        state.locationsStatus = 'failed';
-        state.locationsError = action.payload;
-      });
+      .addCase(fetchLocations.pending,   (s) => { s.locationsStatus = 'loading'; s.locationsError = null; })
+      .addCase(fetchLocations.fulfilled, (s, { payload }) => { s.locationsStatus = 'succeeded'; s.locations = payload; })
+      .addCase(fetchLocations.rejected,  (s, { payload }) => { s.locationsStatus = 'failed';    s.locationsError = payload; });
 
     // createLocation
     builder
-      .addCase(createLocation.pending, (state) => {
-        state.mutationStatus = 'loading';
-        state.mutationError = null;
-      })
-      .addCase(createLocation.fulfilled, (state, action) => {
-        state.mutationStatus = 'succeeded';
-        state.locations = [action.payload, ...state.locations];
-      })
-      .addCase(createLocation.rejected, (state, action) => {
-        state.mutationStatus = 'failed';
-        state.mutationError = action.payload;
-      });
+      .addCase(createLocation.pending,   (s) => { s.mutationStatus = 'loading'; s.mutationError = null; })
+      .addCase(createLocation.fulfilled, (s, { payload }) => { s.mutationStatus = 'succeeded'; s.locations = [payload, ...s.locations]; })
+      .addCase(createLocation.rejected,  (s, { payload }) => { s.mutationStatus = 'failed';    s.mutationError = payload; });
 
     // updateLocation
     builder
-      .addCase(updateLocation.pending, (state) => {
-        state.mutationStatus = 'loading';
+      .addCase(updateLocation.pending,   (s) => { s.mutationStatus = 'loading'; })
+      .addCase(updateLocation.fulfilled, (s, { payload }) => {
+        s.mutationStatus = 'succeeded';
+        const idx = s.locations.findIndex(l => l.id === payload.id);
+        if (idx !== -1) s.locations[idx] = payload;
       })
-      .addCase(updateLocation.fulfilled, (state, action) => {
-        state.mutationStatus = 'succeeded';
-        const idx = state.locations.findIndex((l) => l.id === action.payload.id);
-        if (idx !== -1) state.locations[idx] = action.payload;
-      })
-      .addCase(updateLocation.rejected, (state, action) => {
-        state.mutationStatus = 'failed';
-        state.mutationError = action.payload;
-      });
+      .addCase(updateLocation.rejected,  (s, { payload }) => { s.mutationStatus = 'failed'; s.mutationError = payload; });
 
     // deleteLocation
     builder
-      .addCase(deleteLocation.pending, (state) => {
-        state.mutationStatus = 'loading';
+      .addCase(deleteLocation.pending,   (s) => { s.mutationStatus = 'loading'; })
+      .addCase(deleteLocation.fulfilled, (s, { payload }) => {
+        s.mutationStatus = 'succeeded';
+        s.locations = s.locations.filter(l => l.id !== payload);
+        if (s.selectedDestinationId === payload) s.selectedDestinationId = null;
       })
-      .addCase(deleteLocation.fulfilled, (state, action) => {
-        state.mutationStatus = 'succeeded';
-        state.locations = state.locations.filter((l) => l.id !== action.payload);
-        if (state.selectedDestinationId === action.payload) {
-          state.selectedDestinationId = null;
-        }
+      .addCase(deleteLocation.rejected,  (s, { payload }) => { s.mutationStatus = 'failed'; s.mutationError = payload; });
+
+    // startRoute
+    builder
+      .addCase(startRoute.pending,   (s) => { s.routeStatus = 'loading'; s.routeError = null; s.arrived = false; s.deviationLevel = 0; })
+      .addCase(startRoute.fulfilled, (s, { payload }) => {
+        s.routeStatus     = 'succeeded';
+        s.activeRoute     = payload.active_route;
+        s.routeCandidates = payload.all_candidates;
       })
-      .addCase(deleteLocation.rejected, (state, action) => {
-        state.mutationStatus = 'failed';
-        state.mutationError = action.payload;
+      .addCase(startRoute.rejected,  (s, { payload }) => { s.routeStatus = 'failed'; s.routeError = payload; });
+
+    // fetchActiveRoute
+    builder
+      .addCase(fetchActiveRoute.fulfilled, (s, { payload }) => {
+        if (payload) { s.activeRoute = payload; s.deviationLevel = payload.deviation_level ?? 0; }
+      });
+
+    // cancelRoute
+    builder
+      .addCase(cancelRoute.fulfilled, (s) => {
+        s.activeRoute = null; s.routeCandidates = []; s.routeStatus = 'idle';
+        s.deviationLevel = 0; s.arrived = false;
       });
   },
 });
 
 export const {
-  setCurrentPosition,
-  setGpsError,
-  setSelectedDestination,
-  clearMutationError,
+  setCurrentPosition, setGpsError, setSelectedDestination,
+  clearMutationError, applyDeviationResult, clearRoute,
 } = navigationSlice.actions;
 
 export default navigationSlice.reducer;
