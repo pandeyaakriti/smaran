@@ -70,7 +70,12 @@ async def enroll_face(
 
     # 6. Enroll best face into ChromaDB
     best = max(detected, key=lambda f: f["det_score"])
-    manager.enroll(person_id, person.name, np.array(best["embedding"]))
+    manager.enroll(
+    person_id,
+    person.name,
+    user_id,
+    np.array(best["embedding"])
+    )   
 
     # 7. Update photo_path on Person
     public_path       = f"/uploads/faces/{filename}"
@@ -100,10 +105,47 @@ async def enroll_face(
     }
 
 
+@router.post("/identify")
+async def identify_faces(
+    image: UploadFile = File(...),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Accepts a single camera frame, detects all faces in it, and identifies
+    each one against this user's enrolled faces in ChromaDB.
+
+    Returns a list so the frontend can draw a box + name per detected face,
+    including faces that don't match anyone closely enough (name: None).
+    """
+    contents = await image.read()
+
+    arr = np.frombuffer(contents, np.uint8)
+    frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if frame is None:
+        raise FaceNotDetectedError()
+
+    manager = FaceManager.get()
+    detected = manager.detect(frame)
+
+    results = []
+    for face in detected:
+        match = manager.identify(np.array(face["embedding"]), user_id)
+        results.append({
+            "bbox": face["bbox"],
+            "det_score": round(float(face["det_score"]), 4),
+            "person_id": match["person_id"] if match else None,
+            "name": match["name"] if match else None,
+            "similarity": match["similarity"] if match else None,
+        })
+
+    return {"faces": results}
+
+
 @router.delete("/enroll/{person_id}", status_code=204)
 async def unenroll_face(
     person_id: int,
     db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
 ):
     from backend.models.person import Person
 
@@ -113,7 +155,7 @@ async def unenroll_face(
 
     # Remove from ChromaDB
     try:
-        FaceManager.get()._chroma.delete(ids=[f"person_{person_id}"])
+        FaceManager.get()._chroma.delete(ids=[f"user_{user_id}_person_{person_id}"])
     except Exception:
         pass
 

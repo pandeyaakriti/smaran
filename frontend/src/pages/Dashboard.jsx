@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ConversationPanel from "../components/conversation/ConversationPanel";
+import CameraFeed from "../components/camera/CameraFeed";
 import { personApi } from "../utils/api";
 
 export default function Dashboard() {
@@ -73,7 +74,10 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <ConversationPanel />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CameraFeed />
+        <ConversationPanel />
+      </div>
     </div>
   );
 }

@@ -27,6 +27,12 @@ export const personApi = {
                                   { headers: { 'Content-Type': 'multipart/form-data' }}),
 }
 
+// Faces (live identification)
+export const facesApi = {
+  identify: (formData) => api.post('/faces/identify', formData,
+                            { headers: { 'Content-Type': 'multipart/form-data' }}),
+}
+
 // Memory / LLM
 export const memoryApi = {
   recall: (personContext, snippet) =>
