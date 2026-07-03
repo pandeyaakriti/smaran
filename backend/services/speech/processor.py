@@ -21,7 +21,7 @@ AUDIO_TMP_DIR.mkdir(exist_ok=True)
 
 class AudioProcessor:
     @staticmethod
-    def save_chunk(audio_bytes: bytes, suffix: str = ".wav") -> str:
+    def save_chunk(audio_bytes: bytes, suffix: str = ".webm") -> str:
         """
         Writes raw audio bytes to a uniquely named temp file.
         Returns the file path for the Transcriber to consume.

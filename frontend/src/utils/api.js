@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { supabase } from './supabase'
 
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
   timeout: 15000,
@@ -26,6 +27,12 @@ export const personApi = {
                                   { headers: { 'Content-Type': 'multipart/form-data' }}),
 }
 
+// Faces (live identification)
+export const facesApi = {
+  identify: (formData) => api.post('/faces/identify', formData,
+                            { headers: { 'Content-Type': 'multipart/form-data' }}),
+}
+
 // Memory / LLM
 export const memoryApi = {
   recall: (personContext, snippet) =>
@@ -38,6 +45,8 @@ export const speechApi = {
                               { headers: { 'Content-Type': 'multipart/form-data' }}),
   getSession: (sessionId) => api.get(`/speech/sessions/${sessionId}`),
 }
+//Navigation
+export { navigationApi } from './navigationApi';
 
 // Settings
 export const settingsApi = {

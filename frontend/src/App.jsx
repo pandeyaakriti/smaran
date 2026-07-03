@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import PersonManager from "./pages/PersonManager";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Navigation from "./pages/Navigation";
 
 function Nav({ user }) {
   const base = "px-4 py-2 text-sm font-medium rounded-md transition-colors duration-150";
@@ -20,6 +21,7 @@ function Nav({ user }) {
         <nav className="flex items-center gap-1">
           <NavLink to="/" end className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>Dashboard</NavLink>
           <NavLink to="/persons" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>People</NavLink>
+          <NavLink to="/navigation" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>Navigation</NavLink>
           <NavLink to="/settings" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>Settings</NavLink>
           <div className="flex items-center gap-2 ml-3 pl-3 border-l border-stone-200">
             {user?.user_metadata?.avatar_url && (
@@ -64,6 +66,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/persons" element={<PersonManager />} />
+            <Route path="/navigation" element={<Navigation />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>

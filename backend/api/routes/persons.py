@@ -63,7 +63,8 @@ async def get_person(
 
 
 @router.patch("/{person_id}")
-async def update_person(person_id: int, payload: PersonCreate, db: AsyncSession = Depends(get_db)):
+#async def update_person(person_id: int, payload: PersonCreate, db: AsyncSession = Depends(get_db)): 
+async def update_person(person_id: int, payload: PersonCreate, db: AsyncSession = Depends(get_db), user_id: str = Depends(get_current_user)):
     person = await db.get(Person, person_id)
     if not person or person.user_id != user_id:
         raise PersonNotFoundError(person_id)

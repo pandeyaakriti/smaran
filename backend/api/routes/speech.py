@@ -29,7 +29,8 @@ async def transcribe_audio(
     if not AudioProcessor.is_valid_audio(audio_bytes):
         return {"text": "", "skipped": True, "reason": "clip too short or silent"}
 
-    path = AudioProcessor.save_chunk(audio_bytes)
+    suffix = ".webm" if "webm" in (audio.content_type or "") else ".wav"
+    path = AudioProcessor.save_chunk(audio_bytes, suffix=suffix)
     try:
         transcriber = Transcriber.get()
         result = transcriber.transcribe(path)
