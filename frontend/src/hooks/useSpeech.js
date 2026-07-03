@@ -2,13 +2,9 @@ import { useRef, useCallback, useState } from 'react'
 import { AUDIO_CHUNK_MS, AUDIO_MIME_TYPE } from '../utils/constants'
 
 /**
- * Captures microphone audio in fixed-length chunks (default 4s) and calls
+ * Captures microphone audio in fixed-length chunks (default 6s) and calls
  * onChunk(blob) with each one — mirrors the useCamera hook's frame-interval
  * pattern, but for audio.
- *
- * Why chunks instead of one continuous recording: faster-whisper transcribes
- * fastest on short clips, and chunking lets the UI show near-real-time text
- * without waiting for the whole conversation to end.
  *
  * Why we restart the recorder every cycle instead of using start(timeslice):
  * MediaRecorder only writes the WebM/Matroska container header into the
@@ -23,11 +19,11 @@ export function useSpeech(onChunk) {
   const mediaRecorderRef = useRef(null)
   const streamRef = useRef(null)
   const cycleTimeoutRef = useRef(null)
-  const stoppingRef = useRef(false) // true once stop() has been called, to prevent the cycle from restarting
+  const stoppingRef = useRef(false)
+
   const [active, setActive] = useState(false)
   const [error, setError] = useState(null)
-  const [volume, setVolume] = useState(0)   // 0-100, for a simple level meter
-  const analyserRef = useRef(null)
+  const [volume, setVolume] = useState(0)
   const volumeIntervalRef = useRef(null)
 
   const startCycle = useCallback(() => {
@@ -42,22 +38,13 @@ export function useSpeech(onChunk) {
     }
 
     recorder.onstop = () => {
-      // Kick off the next chunk's recorder immediately, unless stop() was
-      // called from the outside (i.e. the user ended the session).
-      if (!stoppingRef.current) {
-        startCycle()
-      }
+      if (!stoppingRef.current) startCycle()
     }
 
     recorder.start()
 
-    // Each cycle is a single complete recording: schedule its stop() after
-    // AUDIO_CHUNK_MS, which finalizes the WebM header/footer and fires
-    // ondataavailable with one full, decodable blob.
     cycleTimeoutRef.current = setTimeout(() => {
-      if (recorder.state !== 'inactive') {
-        recorder.stop()
-      }
+      if (recorder.state !== 'inactive') recorder.stop()
     }, AUDIO_CHUNK_MS)
   }, [onChunk])
 
@@ -68,13 +55,11 @@ export function useSpeech(onChunk) {
       streamRef.current = stream
       stoppingRef.current = false
 
-      // Simple volume metering so the UI can show "is it hearing me"
       const audioCtx = new AudioContext()
       const source = audioCtx.createMediaStreamSource(stream)
       const analyser = audioCtx.createAnalyser()
       analyser.fftSize = 256
       source.connect(analyser)
-      analyserRef.current = analyser
       const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
       volumeIntervalRef.current = setInterval(() => {
@@ -98,7 +83,8 @@ export function useSpeech(onChunk) {
     stoppingRef.current = true
     clearTimeout(cycleTimeoutRef.current)
     if (mediaRecorderRef.current?.state !== 'inactive') {
-      mediaRecorderRef.current?.stop()
+      mediaRecorderRef.current.onstop = null
+      mediaRecorderRef.current.stop()
     }
     streamRef.current?.getTracks().forEach(t => t.stop())
     clearInterval(volumeIntervalRef.current)
