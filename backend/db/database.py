@@ -12,9 +12,13 @@ else:
     os.makedirs(os.path.dirname(settings.sqlite_db_path), exist_ok=True)
     db_url = f"sqlite+aiosqlite:///{settings.sqlite_db_path}"
 
+print(db_url)
 engine = create_async_engine(
     db_url,
     echo=settings.app_env == "development",
+    connect_args={
+        "statement_cache_size": 0,
+    },
 )
 
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)

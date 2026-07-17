@@ -1,3 +1,4 @@
+#backend/api/routes/speech.py
 from fastapi import APIRouter, UploadFile, File, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from backend.db.database import get_db
 from backend.core.auth import get_current_user
 from backend.services.speech.transcriber import Transcriber
 from backend.services.speech.processor import AudioProcessor
-import backend.services.speech.dedup
+from backend.services.speech.dedup import trim_overlap
 from backend.models.conversation import ConversationLog
 
 router = APIRouter(prefix="/speech", tags=["speech"])
@@ -19,6 +20,7 @@ async def transcribe_audio(
     audio: UploadFile = File(...),
     session_id: str = Form(...),
     person_id: Optional[int] = Form(None),
+    language: Optional[str] = Form(None),   # "en" | "ne" | None (auto-detect)
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
@@ -36,7 +38,7 @@ async def transcribe_audio(
     path = AudioProcessor.save_chunk(audio_bytes, suffix=".webm")
     try:
         transcriber = Transcriber.get()
-        result = transcriber.transcribe(path)
+        result = transcriber.transcribe(path, language=language or None)
     finally:
         AudioProcessor.cleanup(path)
 
@@ -54,7 +56,7 @@ async def transcribe_audio(
     previous_log = prev_result.scalar_one_or_none()
     previous_text = previous_log.transcript if previous_log else ""
 
-    text = backend.services.speech.dedup.trim_overlap(previous_text, raw_text)
+    text = trim_overlap(previous_text, raw_text)
 
     if not text:
         # The entire chunk was just a repeat of the previous one — nothing new

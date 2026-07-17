@@ -1,3 +1,4 @@
+#backend/services/face/manager.py
 """
 FaceManager — central service for face detection, embedding, and identification.
 Uses InsightFace for embeddings and ChromaDB for vector similarity search.
