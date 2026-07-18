@@ -41,10 +41,15 @@ export const memoryApi = {
 
 // Speech
 export const speechApi = {
-  transcribe: (formData) => api.post('/speech/transcribe', formData,
-                              { headers: { 'Content-Type': 'multipart/form-data' }}),
-  getSession: (sessionId) => api.get(`/speech/sessions/${sessionId}`),
+  transcribe:  (formData)                => api.post('/speech/transcribe', formData,
+                                             { headers: { 'Content-Type': 'multipart/form-data' }}),
+  getSession:  (sessionId)               => api.get(`/speech/sessions/${sessionId}`),
+  summarize:   (sessionId, personId)     => api.post('/speech/summarize', {
+                                             session_id: sessionId,
+                                             person_id: personId,
+                                           }),
 }
+
 //Navigation
 export { navigationApi } from './navigationApi';
 
