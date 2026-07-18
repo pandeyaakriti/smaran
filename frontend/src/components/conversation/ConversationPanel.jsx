@@ -9,8 +9,8 @@ function generateSessionId() {
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
-  { value: "ne", label: "नेपाली" },
-  { value: "auto", label: "Auto" },
+  // { value: "ne", label: "नेपाली" },
+  // { value: "auto", label: "Auto" },
 ];
 
 export default function ConversationPanel() {
@@ -83,7 +83,7 @@ export default function ConversationPanel() {
         <div className="flex items-center gap-2">
           {/* Language toggle — only enabled when not recording */}
           <div className="flex rounded-md border border-stone-200 overflow-hidden">
-            {LANGUAGE_OPTIONS.map(opt => (
+            {/* {LANGUAGE_OPTIONS.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => !active && handleLanguageChange(opt.value)}
@@ -96,7 +96,7 @@ export default function ConversationPanel() {
               >
                 {opt.label}
               </button>
-            ))}
+            ))} */}
           </div>
 
           <button

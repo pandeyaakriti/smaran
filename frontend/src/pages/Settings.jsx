@@ -148,18 +148,6 @@ export default function Settings() {
 
       {/* Speech */}
       <SettingsSection title="Speech transcription" description="Whisper model used to transcribe conversations">
-        {/* <div className="flex justify-between items-center">
-          <label className="text-sm text-stone-700">Model size</label>
-          <select
-            value={settings.whisper_model_size ?? "base"}
-            onChange={(e) => patch("whisper_model_size", e.target.value)}
-            className={selectClass}
-          >
-            <option value="tiny">Tiny — fastest</option>
-            <option value="base">Base — balanced</option>
-            <option value="small">Small — more accurate</option>
-          </select>
-        </div> */}
         <div className="flex justify-between items-center">
           <label className="text-sm text-stone-700">Language</label>
           <select
@@ -168,8 +156,8 @@ export default function Settings() {
             className={selectClass}
           >
             <option value="en">English</option>
-            <option value="ne">Nepali</option>
-            <option value="auto">Auto-detect</option>
+            {/* <option value="ne">Nepali</option>
+            <option value="auto">Auto-detect</option> */}
           </select>
         </div>
       </SettingsSection>
