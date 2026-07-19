@@ -25,9 +25,17 @@ export default function Dashboard() {
   // Called by CameraFeed when it identifies someone.
   // faces: array from /faces/identify — [{ person_id, name, similarity, bbox }]
   const handlePersonDetected = (faces) => {
-    const matched = faces?.find(f => f.person_id !== null);
+    if (!faces || faces.length === 0) {
+      setDetectedPerson(null);
+      return;
+    }
+    // Find first face with a real match — person_id can come back as string or int
+    const matched = faces.find(f => f.person_id !== null && f.person_id !== undefined);
     if (matched) {
-      setDetectedPerson({ id: matched.person_id, name: matched.name });
+      setDetectedPerson({
+        id: Number(matched.person_id),
+        name: matched.name,
+      });
     } else {
       setDetectedPerson(null);
     }

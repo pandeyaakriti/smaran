@@ -14,7 +14,7 @@ import FaceOverlay from "./FaceOverlay";
 // FRAME_INTERVAL_MS; this adds a second, coarser throttle on top.
 const IDENTIFY_EVERY_N_FRAMES = 5;
 
-export default function CameraFeed() {
+export default function CameraFeed({ onPersonDetected }) {
   const [faces, setFaces] = useState([]);
   const [error, setError] = useState(null);
   const frameCountRef = useRef(0);
@@ -32,6 +32,7 @@ export default function CameraFeed() {
 
       const res = await facesApi.identify(formData);
       setFaces(res.data.faces || []);
+      onPersonDetected?.(res.data.faces || []);
       setError(null);
     } catch {
       setError("Couldn't reach the server for face identification.");
@@ -46,6 +47,7 @@ export default function CameraFeed() {
     if (active) {
       stop();
       setFaces([]);
+      onPersonDetected?.([]);
     } else {
       setError(null);
       start();
