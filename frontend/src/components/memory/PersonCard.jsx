@@ -1,3 +1,4 @@
+//frontend/src/components/memory/PersonCard.jsx
 import { useState } from "react";
 import FaceEnrollModal from "./FaceEnrollModal";
 

@@ -1,3 +1,4 @@
+#backend/services/memory/llm.py
 """
 LLM wrapper — uses Ollama Python client for contextual memory recall
 and conversation summarization.

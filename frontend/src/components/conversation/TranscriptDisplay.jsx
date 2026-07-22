@@ -1,3 +1,4 @@
+//frontend/src/components/conversation/TranscriptDisplay.jsx
 import { useEffect, useRef } from "react";
 
 function TranscriptLine({ entry }) {

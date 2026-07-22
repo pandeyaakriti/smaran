@@ -1,3 +1,4 @@
+//frontend/src/components/conversation/ConversationPanel.jsx
 import { useState, useCallback, useRef } from "react";
 import { useSpeech } from "../../hooks/useSpeech";
 import { speechApi } from "../../utils/api";
