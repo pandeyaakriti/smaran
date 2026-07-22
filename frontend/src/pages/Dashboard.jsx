@@ -1,7 +1,9 @@
+//frontend/src/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 import ConversationPanel from "../components/conversation/ConversationPanel";
 import CameraFeed from "../components/camera/CameraFeed";
 import { personApi } from "../utils/api";
+import MemoryCue from "../components/memory/MemoryCue";
 
 export default function Dashboard() {
   const [loading, setLoading]           = useState(true);
@@ -75,7 +77,10 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CameraFeed onPersonDetected={handlePersonDetected} />
+        <div className="space-y-4">
+        <MemoryCue person={detectedPerson} />
         <ConversationPanel detectedPerson={detectedPerson} />
+      </div>
       </div>
     </div>
   );
