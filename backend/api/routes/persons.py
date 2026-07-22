@@ -1,15 +1,16 @@
-#backend/api/routes/persons.py
 import os
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.database import get_db
 from backend.models.person import Person
+from backend.services.face.manager import FaceManager
+from backend.models.conversation import ConversationLog
 from backend.core.exceptions import PersonNotFoundError
 from backend.core.auth import get_current_user
 from pydantic import BaseModel
@@ -86,22 +87,28 @@ async def delete_person(
     if not person or person.user_id != user_id:
         raise PersonNotFoundError(person_id)
 
-    # 1. Remove face embedding from ChromaDB
+    # 1. Delete all conversation logs for this person
+    await db.execute(
+        delete(ConversationLog).where(
+            ConversationLog.person_id == person_id,
+            ConversationLog.user_id == user_id,
+        )
+    )
+
+    # 2. Remove face embedding from ChromaDB
     try:
-        from backend.services.face.manager import FaceManager
         FaceManager.get()._chroma.delete(
             ids=[f"user_{user_id}_person_{person_id}"]
         )
     except Exception:
         pass
 
-    # 2. Delete photo file from disk
+    # 3. Delete photo file from disk
     if person.photo_path:
         photo_file = FACES_UPLOAD_DIR / os.path.basename(person.photo_path)
         if photo_file.is_file():
             photo_file.unlink()
 
-    # 3. Delete person — SQLAlchemy cascade="all, delete-orphan" on
-    #    Person.face_embedding handles the FaceEmbedding row automatically
+    # 4. Delete the person
     await db.delete(person)
     await db.commit()
