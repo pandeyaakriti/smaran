@@ -17,7 +17,7 @@ class UserSettings(Base):
     whisper_language          = Column(String(10), default="en")
 
     # Memory / LLM
-    ollama_model              = Column(String(60), default="llama3.2")
+    ollama_model              = Column(String(60), default="gemma:2b")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
