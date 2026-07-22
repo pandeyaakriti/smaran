@@ -45,9 +45,6 @@ app = FastAPI(
 )
 
 # ── 1. Middleware first ───────────────────────────────────────────────────────
-# CORS must be registered before any mounts. Starlette processes middleware
-# in reverse registration order, and mounted sub-apps (StaticFiles) bypass
-# the middleware stack entirely if mounted first — causing 404s.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],

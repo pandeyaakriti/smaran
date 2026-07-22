@@ -34,7 +34,7 @@ export default function ConversationPanel() {
         }];
       });
     } catch {
-      setError("Failed to transcribe. Check your connection.");
+      setError("Failed to transcribe. Server error");
       setEntries(prev => prev.filter(e => e.id !== pendingId));
     }
   }, []);

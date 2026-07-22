@@ -35,8 +35,9 @@ function PhotoAvatar({ photoPath, name }) {
   const [imgError, setImgError] = useState(false);
 
   // photoPath is stored as "/uploads/faces/person_1_abc123.jpg"
-  // Prepend the API base so the browser fetches from the backend static mount.
-  const src = `${API_BASE}${photoPath}`;
+  const src =
+  `${API_BASE.replace(/\/$/, "")}${photoPath}`;
+
 
   if (imgError) {
     // Fall back to initials if the image fails to load

@@ -35,7 +35,7 @@ export default function FaceEnrollModal({ person, onClose, onSuccess }) {
 
       await personApi.enrollFace(person.id, formData);
 
-      // Let PersonCard (and therefore PersonManager) know enrollment succeeded
+      // Let PersonCard know enrollment succeeded
       onSuccess();
     } catch (err) {
       console.error(err);
