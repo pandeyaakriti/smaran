@@ -89,7 +89,9 @@ async def delete_person(
     # 1. Remove face embedding from ChromaDB
     try:
         from backend.services.face.manager import FaceManager
-        FaceManager.get()._chroma.delete(ids=[f"person_{person_id}"])
+        FaceManager.get()._chroma.delete(
+            ids=[f"user_{user_id}_person_{person_id}"]
+        )
     except Exception:
         pass
 
