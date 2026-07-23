@@ -167,11 +167,12 @@ export default function Settings() {
         <div className="flex justify-between items-center">
           <label className="text-sm text-stone-700">Ollama model</label>
           <select
-            value={settings.ollama_model ?? "llama3.2"}
+            value={settings.ollama_model ?? "gemma:2b"}
             onChange={(e) => patch("ollama_model", e.target.value)}
             className={selectClass}
           >
-            <option value="llama3.2">llama3.2</option>
+            <option value="gemma:2b">gemma:2b</option>
+            <option value="gemma:7b">gemma:7b</option>
             {/* <option value="mistral">mistral</option>
             <option value="gemma2">gemma2</option> */}
           </select>

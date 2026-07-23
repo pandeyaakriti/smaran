@@ -82,26 +82,56 @@ async def delete_all_data(
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
-    """Deletes all persons, settings, and face embeddings for this user. Irreversible."""
-    result = await db.execute(select(Person).where(Person.user_id == user_id))
+    """
+    Deletes all user data:
+    - Persons
+    - FaceEmbedding rows (cascade)
+    - Face images on disk
+    - ChromaDB embeddings
+    - User settings
+    """
+
+    import os
+    from pathlib import Path
+
+    BASE_DIR = Path(__file__).resolve().parents[2]
+    FACES_UPLOAD_DIR = BASE_DIR / "uploads" / "faces"
+
+    # Get all persons for this user
+    result = await db.execute(
+        select(Person).where(Person.user_id == user_id)
+    )
     persons = result.scalars().all()
-    for p in persons:
-        await db.delete(p)
 
-    result = await db.execute(select(UserSettings).where(UserSettings.user_id == user_id))
-    settings = result.scalar_one_or_none()
-    if settings:
-        await db.delete(settings)
+    # Delete each person's image file
+    for person in persons:
+        if person.photo_path:
+            photo_file = FACES_UPLOAD_DIR / os.path.basename(person.photo_path)
+            if photo_file.exists():
+                photo_file.unlink()
 
-    await db.commit()
-
+    # Delete all Chroma embeddings for this user
     try:
         manager = FaceManager.get()
         if manager._chroma:
             existing = manager._chroma.get(where={"user_id": user_id})
             if existing and existing["ids"]:
                 manager._chroma.delete(ids=existing["ids"])
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Failed deleting Chroma embeddings: {e}")
+
+    # Delete all persons
+    for person in persons:
+        await db.delete(person)
+
+    # Delete user settings
+    result = await db.execute(
+        select(UserSettings).where(UserSettings.user_id == user_id)
+    )
+    settings = result.scalar_one_or_none()
+    if settings:
+        await db.delete(settings)
+
+    await db.commit()
 
     return {"status": "deleted"}

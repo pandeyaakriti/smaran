@@ -34,17 +34,27 @@ export const facesApi = {
 }
 
 // Memory / LLM
+// export const memoryApi = {
+//   recall: (personContext, snippet) =>
+//     api.post('/memory/recall', { person_context: personContext, conversation_snippet: snippet }),
+// }
 export const memoryApi = {
-  recall: (personContext, snippet) =>
-    api.post('/memory/recall', { person_context: personContext, conversation_snippet: snippet }),
-}
+  recall: (personId, conversationSnippet = null) =>
+    api.post("/memory/recall", { person_id: personId, conversation_snippet: conversationSnippet }),
+};
 
 // Speech
 export const speechApi = {
-  transcribe: (formData) => api.post('/speech/transcribe', formData,
-                              { headers: { 'Content-Type': 'multipart/form-data' }}),
-  getSession: (sessionId) => api.get(`/speech/sessions/${sessionId}`),
+  transcribe:  (formData)                => api.post('/speech/transcribe', formData,
+                                             { headers: { 'Content-Type': 'multipart/form-data' }}),
+  getSession:  (sessionId)               => api.get(`/speech/sessions/${sessionId}`),
+  summarize:   (sessionId, personId)     => api.post('/speech/summarize', {
+                                            session_id: sessionId,
+                                            person_id: personId,},
+                                            {timeout: 60000,}
+),
 }
+
 //Navigation
 export { navigationApi } from './navigationApi';
 

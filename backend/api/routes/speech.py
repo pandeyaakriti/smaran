@@ -3,6 +3,7 @@ from fastapi import APIRouter, UploadFile, File, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
+from pydantic import BaseModel
 from loguru import logger
 
 from backend.db.database import get_db
@@ -20,7 +21,6 @@ async def transcribe_audio(
     audio: UploadFile = File(...),
     session_id: str = Form(...),
     person_id: Optional[int] = Form(None),
-    language: Optional[str] = Form(None),   # "en" | "ne" | None (auto-detect)
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(get_current_user),
 ):
@@ -38,7 +38,7 @@ async def transcribe_audio(
     path = AudioProcessor.save_chunk(audio_bytes, suffix=".webm")
     try:
         transcriber = Transcriber.get()
-        result = transcriber.transcribe(path, language=language or None)
+        result = transcriber.transcribe(path)
     finally:
         AudioProcessor.cleanup(path)
 
@@ -97,3 +97,59 @@ async def get_session_transcript(
         .order_by(ConversationLog.timestamp.asc())
     )
     return result.scalars().all()
+
+
+class SummarizeRequest(BaseModel):
+    session_id: str
+    person_id: int
+
+
+@router.post("/summarize")
+async def summarize_session(
+    payload: SummarizeRequest,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    """
+    Called when a session ends and a person was detected.
+    Fetches all transcript chunks for the session, asks the LLM to summarize,
+    and appends the summary to the person's notes field.
+    """
+    from sqlalchemy import select
+    from backend.models.person import Person
+    from backend.services.memory.llm import MemoryLLM
+    from backend.core.exceptions import PersonNotFoundError
+
+    # Verify person belongs to this user
+    person = await db.get(Person, payload.person_id)
+    if not person or person.user_id != user_id:
+        raise PersonNotFoundError(payload.person_id)
+
+    # Fetch all transcript chunks for this session in order
+    result = await db.execute(
+        select(ConversationLog)
+        .where(
+            ConversationLog.session_id == payload.session_id,
+            ConversationLog.user_id == user_id,
+        )
+        .order_by(ConversationLog.timestamp.asc())
+    )
+    logs = result.scalars().all()
+
+    if not logs:
+        return {"status": "skipped", "reason": "no transcript found for session"}
+
+    full_transcript = " ".join(log.transcript for log in logs)
+
+    llm = MemoryLLM()
+    summary = llm.summarize(full_transcript, person.name)
+
+    if not summary:
+        return {"status": "skipped", "reason": "LLM returned empty summary"}
+
+    # Append to existing notes (never overwrites — always adds)
+    person.notes = (person.notes or "") + summary
+    await db.commit()
+
+    logger.info("Appended summary to {} (person_id={})", person.name, person.id)
+    return {"status": "saved", "person_id": person.id, "summary": summary}

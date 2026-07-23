@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Ollama / LLM
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.2"
+    ollama_model: str = "gemma:2b"
     ollama_context_window: int = 4096
 
     # WebSocket

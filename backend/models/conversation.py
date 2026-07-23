@@ -1,3 +1,4 @@
+#backend/models/conversation.py
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey
 from sqlalchemy.sql import func
 from backend.db.database import Base

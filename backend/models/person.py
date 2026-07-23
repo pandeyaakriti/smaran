@@ -1,8 +1,8 @@
+#backend/models/person.py
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.db.database import Base
-
 
 class Person(Base):
     __tablename__ = "persons"
